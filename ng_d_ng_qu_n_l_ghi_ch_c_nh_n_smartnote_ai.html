@@ -1,0 +1,1576 @@
+<!DOCTYPE html>
+<html lang="vi" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartNote AI - Quản Lý Ghi Chú Cá Nhân Thông Minh</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Tùy chỉnh thanh cuộn mượt mà */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(156, 163, 175, 0.4);
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(156, 163, 175, 0.7);
+        }
+        /* Hiệu ứng chuyển động cho AI loading */
+        @keyframes pulse-glow {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.6; transform: scale(0.98); }
+        }
+        .ai-loading {
+            animation: pulse-glow 1.5s infinite ease-in-out;
+        }
+        /* Kiểu dáng khi in báo cáo */
+        @media print {
+            .no-print { display: none !important; }
+            .print-only { display: block !important; }
+            body { background: white !important; color: black !important; }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 dark:bg-slate-950 dark:text-slate-100 font-sans antialiased selection:bg-indigo-500 selection:text-white overflow-hidden h-screen flex flex-col">
+
+    <!-- THANH HEADER TRÊN CÙNG -->
+    <header class="h-14 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 flex items-center justify-between shrink-0 z-20 no-print">
+        <div class="flex items-center gap-3">
+            <!-- Nút mở Sidebar trên Mobile -->
+            <button id="mobile-menu-btn" class="lg:hidden p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300">
+                <i data-lucide="menu" class="w-5 h-5"></i>
+            </button>
+            <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center text-white shadow-md shadow-indigo-500/20">
+                    <i data-lucide="notebook-pen" class="w-4 h-4"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-base tracking-tight leading-none flex items-center gap-1.5">
+                        SmartNote <span class="text-xs font-semibold px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300">AI</span>
+                    </h1>
+                    <p class="text-[11px] text-slate-500 dark:text-slate-400 hidden sm:block">Assignment CNTT 4.0 • Quản lý ghi chú thông minh</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Các nút chức năng toàn cục -->
+        <div class="flex items-center gap-2">
+            <!-- Nút mở Sơ đồ thiết kế & Vận hành (Đáp ứng Y4) -->
+            <button onclick="openModal('wireframe-modal')" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800/60 transition shadow-sm" title="Xem bản vẽ phác thảo & luồng hoạt động (Yêu cầu 4)">
+                <i data-lucide="layout-template" class="w-3.5 h-3.5"></i>
+                <span class="hidden md:inline">Sơ đồ Wireframe & Flow (Y4)</span>
+                <span class="md:hidden">Y4</span>
+            </button>
+
+            <!-- Nút Chat AI tổng hợp (Đáp ứng Y6) -->
+            <button onclick="openModal('ai-chat-modal')" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-gradient-to-r from-indigo-600 to-violet-600 text-white hover:from-indigo-700 hover:to-violet-700 transition shadow-sm shadow-indigo-500/20" title="Hỏi đáp AI trên toàn bộ ghi chú">
+                <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+                <span class="hidden sm:inline">Hỏi đáp AI Kho Ghi Chú</span>
+            </button>
+
+            <!-- Nút Xuất báo cáo / Dữ liệu -->
+            <div class="relative group">
+                <button class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition" title="Xuất dữ liệu & Báo cáo">
+                    <i data-lucide="download" class="w-4 h-4"></i>
+                </button>
+                <div class="absolute right-0 mt-1 w-48 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 py-1.5 hidden group-hover:block z-50">
+                    <button onclick="exportData('json')" class="w-full px-3.5 py-2 text-left text-xs hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2">
+                        <i data-lucide="file-json" class="w-3.5 h-3.5 text-indigo-500"></i> Xuất file JSON
+                    </button>
+                    <button onclick="exportData('markdown')" class="w-full px-3.5 py-2 text-left text-xs hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2">
+                        <i data-lucide="file-text" class="w-3.5 h-3.5 text-emerald-500"></i> Xuất file Markdown (.md)
+                    </button>
+                    <button onclick="window.print()" class="w-full px-3.5 py-2 text-left text-xs hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2">
+                        <i data-lucide="printer" class="w-3.5 h-3.5 text-amber-500"></i> In báo cáo nộp bài
+                    </button>
+                </div>
+            </div>
+
+            <!-- Chuyển đổi Sáng / Tối -->
+            <button id="theme-toggle" class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition" title="Chuyển chế độ Sáng / Tối">
+                <i data-lucide="moon" class="w-4 h-4 dark:hidden"></i>
+                <i data-lucide="sun" class="w-4 h-4 hidden dark:block text-amber-400"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- BỐ CỤC CHÍNH 3 CỘT -->
+    <div class="flex-1 flex overflow-hidden relative">
+
+        <!-- CỘT 1: SIDEBAR ĐIỀU HƯỚNG & DANH MỤC -->
+        <aside id="sidebar" class="w-64 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col justify-between shrink-0 transition-transform duration-300 absolute lg:static inset-y-0 left-0 z-30 -translate-x-full lg:translate-x-0 no-print">
+            <div class="p-3.5 space-y-5 overflow-y-auto flex-1">
+                <!-- Nút Tạo Ghi Chú Mới -->
+                <button onclick="createNewNote()" class="w-full py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm flex items-center justify-center gap-2 shadow-md shadow-indigo-600/20 transition active:scale-[0.98]">
+                    <i data-lucide="plus" class="w-4 h-4"></i>
+                    <span>Tạo ghi chú mới</span>
+                </button>
+
+                <!-- Bộ lọc nhanh -->
+                <div class="space-y-1">
+                    <p class="px-2.5 text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1.5">Tổng quan</p>
+                    <button onclick="setFilter('all')" data-filter="all" class="nav-item w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-sm font-medium bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300">
+                        <span class="flex items-center gap-2.5"><i data-lucide="layers" class="w-4 h-4"></i> Tất cả ghi chú</span>
+                        <span id="count-all" class="text-xs px-1.5 py-0.5 rounded-full bg-white dark:bg-slate-800 shadow-sm">0</span>
+                    </button>
+                    <button onclick="setFilter('pinned')" data-filter="pinned" class="nav-item w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60">
+                        <span class="flex items-center gap-2.5"><i data-lucide="pin" class="w-4 h-4 text-amber-500"></i> Đã ghim</span>
+                        <span id="count-pinned" class="text-xs text-slate-400">0</span>
+                    </button>
+                    <button onclick="setFilter('archived')" data-filter="archived" class="nav-item w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60">
+                        <span class="flex items-center gap-2.5"><i data-lucide="archive" class="w-4 h-4 text-slate-400"></i> Lưu trữ</span>
+                        <span id="count-archived" class="text-xs text-slate-400">0</span>
+                    </button>
+                </div>
+
+                <!-- Danh mục / Thư mục -->
+                <div class="space-y-1">
+                    <p class="px-2.5 text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1.5">Danh mục</p>
+                    <div id="category-list" class="space-y-0.5">
+                        <!-- Render bằng JS -->
+                    </div>
+                </div>
+
+                <!-- Thống kê thời gian áp dụng (Đáp ứng Y5b: Tối thiểu 5 ngày) -->
+                <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/60 space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-1.5">
+                            <i data-lucide="calendar-check" class="w-3.5 h-3.5 text-emerald-500"></i> Tiến độ 6 ngày (Y5)
+                        </span>
+                        <span id="streak-badge" class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">Đạt chuẩn</span>
+                    </div>
+                    <p class="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                        Hệ thống ghi nhận dữ liệu liên tục trong <strong id="active-days-count" class="text-slate-700 dark:text-slate-200">6 ngày</strong> gần nhất.
+                    </p>
+                    <!-- Biểu đồ mini 6 ngày -->
+                    <div id="mini-activity-chart" class="flex items-end justify-between gap-1 h-10 pt-1">
+                        <!-- Render bằng JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer Sidebar: Khôi phục dữ liệu mẫu -->
+            <div class="p-3 border-t border-slate-200 dark:border-slate-800">
+                <button onclick="resetToSampleData()" class="w-full py-2 px-3 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center gap-1.5 transition border border-dashed border-slate-300 dark:border-slate-700">
+                    <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+                    <span>Khôi phục 12 ghi chú mẫu</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Lớp phủ mờ khi mở Sidebar trên Mobile -->
+        <div id="sidebar-overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-20 hidden lg:hidden"></div>
+
+        <!-- CỘT 2: DANH SÁCH GHI CHÚ & TÌM KIẾM -->
+        <section id="note-list-pane" class="w-full md:w-80 lg:w-96 border-r border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/40 flex flex-col shrink-0 no-print">
+            <!-- Thanh tìm kiếm & Lọc ngày -->
+            <div class="p-3 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 space-y-2.5">
+                <div class="relative">
+                    <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
+                    <input type="text" id="search-input" oninput="renderNotesList()" placeholder="Tìm kiếm tiêu đề, nội dung, thẻ..." class="w-full pl-9 pr-3 py-2 text-xs rounded-xl bg-slate-100 dark:bg-slate-800 border-transparent focus:bg-white dark:focus:bg-slate-950 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition">
+                </div>
+                <div class="flex items-center justify-between gap-2">
+                    <div class="flex items-center gap-1.5 flex-1">
+                        <i data-lucide="calendar" class="w-3.5 h-3.5 text-slate-400 shrink-0"></i>
+                        <select id="date-filter" onchange="renderNotesList()" class="w-full text-xs bg-slate-100 dark:bg-slate-800 rounded-lg px-2 py-1.5 outline-none text-slate-700 dark:text-slate-300 cursor-pointer">
+                            <option value="all">Tất cả các ngày (6 ngày)</option>
+                            <!-- Các ngày sẽ được thêm động bằng JS -->
+                        </select>
+                    </div>
+                    <select id="sort-select" onchange="renderNotesList()" class="text-xs bg-slate-100 dark:bg-slate-800 rounded-lg px-2 py-1.5 outline-none text-slate-700 dark:text-slate-300 cursor-pointer">
+                        <option value="newest">Mới nhất</option>
+                        <option value="oldest">Cũ nhất</option>
+                        <option value="title">Tên A-Z</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Danh sách thẻ ghi chú -->
+            <div id="notes-container" class="flex-1 overflow-y-auto p-3 space-y-2.5">
+                <!-- Render bằng JS -->
+            </div>
+        </section>
+
+        <!-- CỘT 3: TRÌNH SOẠN THẢO & CHI TIẾT GHI CHÚ -->
+        <main id="editor-pane" class="flex-1 bg-white dark:bg-slate-950 flex flex-col overflow-hidden hidden md:flex">
+            <!-- Thanh công cụ trình soạn thảo -->
+            <div id="editor-toolbar" class="h-12 border-b border-slate-200 dark:border-slate-800 px-4 flex items-center justify-between gap-2 shrink-0 no-print">
+                <div class="flex items-center gap-2">
+                    <!-- Nút quay lại danh sách trên Mobile -->
+                    <button onclick="closeMobileEditor()" class="md:hidden p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300">
+                        <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                    </button>
+
+                    <!-- Chọn Danh mục -->
+                    <select id="note-category-select" onchange="updateCurrentNoteField('category', this.value)" class="text-xs font-medium px-2.5 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 outline-none cursor-pointer border border-transparent focus:border-indigo-500">
+                        <option value="Học tập">📚 Học tập</option>
+                        <option value="Công việc">💼 Công việc</option>
+                        <option value="Kế hoạch">📅 Kế hoạch</option>
+                        <option value="Ý tưởng">💡 Ý tưởng</option>
+                        <option value="Cá nhân">🌱 Cá nhân</option>
+                    </select>
+
+                    <!-- Chọn Ngày ghi chú -->
+                    <input type="date" id="note-date-input" onchange="updateCurrentNoteField('date', this.value)" class="text-xs px-2.5 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 outline-none cursor-pointer">
+                </div>
+
+                <!-- Các nút hành động trên ghi chú -->
+                <div class="flex items-center gap-1">
+                    <button id="btn-pin" onclick="toggleNoteFlag('pinned')" class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition" title="Ghim ghi chú">
+                        <i data-lucide="pin" class="w-4 h-4"></i>
+                    </button>
+                    <button id="btn-archive" onclick="toggleNoteFlag('archived')" class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition" title="Lưu trữ ghi chú">
+                        <i data-lucide="archive" class="w-4 h-4"></i>
+                    </button>
+                    <button onclick="deleteCurrentNote()" class="p-2 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/50 text-slate-500 hover:text-rose-600 transition" title="Xóa ghi chú">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Thanh công cụ AI Assistant (Yêu cầu 6) -->
+            <div class="bg-gradient-to-r from-indigo-50/90 via-violet-50/90 to-purple-50/90 dark:from-indigo-950/40 dark:via-violet-950/40 dark:to-purple-950/40 border-b border-indigo-100 dark:border-indigo-900/50 px-4 py-2 flex items-center gap-2 overflow-x-auto shrink-0 no-print">
+                <span class="text-[11px] font-bold text-indigo-700 dark:text-indigo-300 flex items-center gap-1 shrink-0 mr-1">
+                    <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> Trợ lý AI:
+                </span>
+                <button onclick="runAIAction('summarize')" class="ai-btn shrink-0 px-2.5 py-1 rounded-lg text-xs font-medium bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border border-indigo-200/70 dark:border-indigo-800/70 hover:border-indigo-500 hover:text-indigo-600 transition shadow-2xs flex items-center gap-1.5">
+                    <i data-lucide="align-left" class="w-3 h-3 text-indigo-500"></i> Tóm tắt ý chính
+                </button>
+                <button onclick="runAIAction('extract_todos')" class="ai-btn shrink-0 px-2.5 py-1 rounded-lg text-xs font-medium bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border border-indigo-200/70 dark:border-indigo-800/70 hover:border-indigo-500 hover:text-indigo-600 transition shadow-2xs flex items-center gap-1.5">
+                    <i data-lucide="check-square" class="w-3 h-3 text-emerald-500"></i> Trích xuất Checklist
+                </button>
+                <button onclick="runAIAction('expand')" class="ai-btn shrink-0 px-2.5 py-1 rounded-lg text-xs font-medium bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border border-indigo-200/70 dark:border-indigo-800/70 hover:border-indigo-500 hover:text-indigo-600 transition shadow-2xs flex items-center gap-1.5">
+                    <i data-lucide="wand-2" class="w-3 h-3 text-violet-500"></i> Mở rộng & Chuẩn hóa
+                </button>
+                <button onclick="runAIAction('auto_tags')" class="ai-btn shrink-0 px-2.5 py-1 rounded-lg text-xs font-medium bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border border-indigo-200/70 dark:border-indigo-800/70 hover:border-indigo-500 hover:text-indigo-600 transition shadow-2xs flex items-center gap-1.5">
+                    <i data-lucide="tags" class="w-3 h-3 text-amber-500"></i> Gợi ý Thẻ & Danh mục
+                </button>
+            </div>
+
+            <!-- Khu vực hiển thị trạng thái & kết quả AI -->
+            <div id="ai-result-box" class="hidden mx-6 mt-4 p-4 rounded-xl bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/70 space-y-2.5 no-print">
+                <div class="flex items-center justify-between">
+                    <span id="ai-result-title" class="text-xs font-bold text-indigo-700 dark:text-indigo-300 flex items-center gap-1.5">
+                        <i data-lucide="bot" class="w-4 h-4"></i> Kết quả phân tích từ Gemini AI
+                    </span>
+                    <button onclick="document.getElementById('ai-result-box').classList.add('hidden')" class="text-slate-400 hover:text-slate-600">
+                        <i data-lucide="x" class="w-4 h-4"></i>
+                    </button>
+                </div>
+                <div id="ai-result-content" class="text-xs text-slate-700 dark:text-slate-200 leading-relaxed whitespace-pre-line"></div>
+                <div id="ai-result-actions" class="flex items-center gap-2 pt-1"></div>
+            </div>
+
+            <!-- Nội dung chi tiết ghi chú -->
+            <div id="editor-content-area" class="flex-1 overflow-y-auto p-6 md:px-10 space-y-5">
+                <!-- Tiêu đề ghi chú -->
+                <input type="text" id="note-title-input" oninput="updateCurrentNoteField('title', this.value)" placeholder="Nhập tiêu đề ghi chú..." class="w-full text-2xl md:text-3xl font-bold bg-transparent border-none outline-none text-slate-900 dark:text-white placeholder-slate-300 dark:placeholder-slate-700">
+
+                <!-- Quản lý Thẻ (Tags) -->
+                <div class="flex flex-wrap items-center gap-1.5">
+                    <i data-lucide="tag" class="w-3.5 h-3.5 text-slate-400 mr-1"></i>
+                    <div id="note-tags-container" class="flex flex-wrap items-center gap-1.5"></div>
+                    <input type="text" id="new-tag-input" onkeydown="handleTagKeydown(event)" placeholder="+ Thêm thẻ (Enter)..." class="text-xs bg-transparent border-b border-dashed border-slate-300 dark:border-slate-700 focus:border-indigo-500 outline-none py-0.5 px-1 w-32 text-slate-600 dark:text-slate-300">
+                </div>
+
+                <!-- Nội dung văn bản -->
+                <div>
+                    <textarea id="note-body-input" oninput="updateCurrentNoteField('content', this.value)" rows="8" placeholder="Viết nội dung ghi chú của bạn tại đây..." class="w-full text-sm md:text-base leading-relaxed bg-transparent border-none outline-none resize-none text-slate-700 dark:text-slate-300 placeholder-slate-400"></textarea>
+                </div>
+
+                <!-- Danh sách công việc (Checklist / Todo) -->
+                <div class="pt-4 border-t border-slate-100 dark:border-slate-800/80 space-y-3">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                            <i data-lucide="list-checks" class="w-4 h-4 text-indigo-500"></i> Danh sách công việc cần làm (Checklist)
+                        </h3>
+                        <span id="checklist-progress" class="text-xs font-medium text-slate-500">0/0 hoàn thành</span>
+                    </div>
+                    
+                    <div id="checklist-items" class="space-y-2">
+                        <!-- Render bằng JS -->
+                    </div>
+
+                    <div class="flex items-center gap-2 pt-1 no-print">
+                        <input type="text" id="new-todo-input" onkeydown="if(event.key==='Enter') addTodoItem()" placeholder="Thêm mục công việc mới..." class="flex-1 text-xs px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800/80 outline-none focus:ring-2 focus:ring-indigo-500/30">
+                        <button onclick="addTodoItem()" class="px-3 py-2 rounded-lg bg-slate-200 dark:bg-slate-800 hover:bg-indigo-600 hover:text-white text-xs font-medium transition">
+                            Thêm
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Thanh trạng thái dưới cùng -->
+            <div class="h-8 border-t border-slate-100 dark:border-slate-800/80 px-6 flex items-center justify-between text-[11px] text-slate-400 shrink-0 no-print">
+                <span id="save-status">Đã tự động lưu vào trình duyệt</span>
+                <span id="word-count">0 từ • 0 ký tự</span>
+            </div>
+        </main>
+
+        <!-- Trạng thái trống khi chưa chọn ghi chú -->
+        <div id="empty-editor-state" class="flex-1 hidden flex-col items-center justify-center text-center p-8 bg-white dark:bg-slate-950">
+            <div class="w-16 h-16 rounded-2xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-500 flex items-center justify-center mb-4">
+                <i data-lucide="file-edit" class="w-8 h-8"></i>
+            </div>
+            <h3 class="text-lg font-semibold text-slate-800 dark:text-slate-200">Chưa có ghi chú nào được chọn</h3>
+            <p class="text-xs text-slate-500 max-w-xs mt-1 mb-4">Chọn một ghi chú từ danh sách bên trái hoặc tạo ghi chú mới để bắt đầu làm việc với trợ lý AI.</p>
+            <button onclick="createNewNote()" class="px-4 py-2 rounded-xl bg-indigo-600 text-white text-xs font-medium hover:bg-indigo-700 transition">
+                + Tạo ghi chú mới
+            </button>
+        </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- MODAL 1: SƠ ĐỒ THIẾT KẾ & VẬN HÀNH (WIREFRAME & FLOW - YÊU CẦU 4)     -->
+    <!-- ===================================================================== -->
+    <div id="wireframe-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-5xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+            <!-- Header Modal -->
+            <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-800/50">
+                <div>
+                    <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-300">Báo cáo Assignment - Yêu cầu 4</span>
+                    <h2 class="text-lg font-bold text-slate-900 dark:text-white mt-1">Bản Vẽ Phác Thảo (Wireframe) & Sơ Đồ Vận Hành Hệ Thống</h2>
+                </div>
+                <button onclick="closeModal('wireframe-modal')" class="p-2 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <!-- Tabs chuyển đổi nội dung Y4a, Y4b, Y4c -->
+            <div class="flex border-b border-slate-200 dark:border-slate-800 px-6 bg-white dark:bg-slate-900 gap-4">
+                <button onclick="switchY4Tab('y4a')" id="tab-y4a" class="y4-tab py-3 text-xs font-bold border-b-2 border-indigo-600 text-indigo-600 dark:text-indigo-400">
+                    4a. Phác thảo Giao diện chính
+                </button>
+                <button onclick="switchY4Tab('y4b')" id="tab-y4b" class="y4-tab py-3 text-xs font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-700">
+                    4b. Giao diện các chức năng chính
+                </button>
+                <button onclick="switchY4Tab('y4c')" id="tab-y4c" class="y4-tab py-3 text-xs font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-700">
+                    4c. Sơ đồ vận hành (User Flow)
+                </button>
+            </div>
+
+            <!-- Nội dung chi tiết của từng Tab -->
+            <div class="p-6 overflow-y-auto flex-1 space-y-6">
+                
+                <!-- TAB 4A: WIREFRAME GIAO DIỆN CHÍNH -->
+                <div id="content-y4a" class="y4-content space-y-4">
+                    <p class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                        <strong>Mô tả thiết kế (Layout 3 cột chuẩn hiện đại):</strong> Giao diện chính được tổ chức theo mô hình Master-Detail 3 phân vùng giúp tối ưu hóa thao tác trên cả máy tính và thiết bị di động:
+                    </p>
+                    <!-- Bản vẽ Wireframe trực quan bằng CSS/SVG -->
+                    <div class="border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-xl p-4 bg-slate-50 dark:bg-slate-950 font-mono text-xs">
+                        <div class="border border-slate-400 dark:border-slate-600 rounded-lg p-2 mb-3 bg-white dark:bg-slate-900 flex justify-between items-center">
+                            <span>[LOGO: SmartNote AI]</span>
+                            <span class="text-slate-400">Thanh Header: Nút Sơ đồ Y4 | Chat AI | Xuất Báo Cáo | DarkMode</span>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-12 gap-3 h-72">
+                            <!-- Cột 1 -->
+                            <div class="md:col-span-3 border border-indigo-400 bg-indigo-50/50 dark:bg-indigo-950/30 rounded-lg p-3 flex flex-col justify-between">
+                                <div>
+                                    <div class="font-bold text-indigo-700 dark:text-indigo-300 mb-2">[1. SIDEBAR ĐIỀU HƯỚNG]</div>
+                                    <div class="p-1.5 bg-indigo-600 text-white rounded text-center mb-2">+ Tạo ghi chú mới</div>
+                                    <ul class="space-y-1 text-[11px] text-slate-600 dark:text-slate-400">
+                                        <li>• Tất cả / Ghim / Lưu trữ</li>
+                                        <li>• 5 Danh mục phân loại</li>
+                                        <li>• Biểu đồ chuỗi 6 ngày</li>
+                                    </ul>
+                                </div>
+                                <div class="p-1.5 border border-dashed border-slate-400 rounded text-center text-[10px]">Reset 12 ghi chú mẫu</div>
+                            </div>
+                            <!-- Cột 2 -->
+                            <div class="md:col-span-4 border border-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/30 rounded-lg p-3 flex flex-col">
+                                <div class="font-bold text-emerald-700 dark:text-emerald-300 mb-2">[2. DANH SÁCH GHI CHÚ]</div>
+                                <div class="p-1.5 border border-slate-300 dark:border-slate-700 rounded mb-2 bg-white dark:bg-slate-900">🔍 Tìm kiếm & Lọc ngày</div>
+                                <div class="space-y-2 flex-1 overflow-hidden">
+                                    <div class="p-2 border border-emerald-500 bg-white dark:bg-slate-900 rounded">
+                                        <div class="font-bold">📌 Ghi chú đang chọn</div>
+                                        <div class="text-[10px] text-slate-400">Ngày • Danh mục • Tags</div>
+                                    </div>
+                                    <div class="p-2 border border-slate-300 dark:border-slate-700 bg-white/60 dark:bg-slate-900/60 rounded">
+                                        <div>Ghi chú #2...</div>
+                                    </div>
+                                    <div class="p-2 border border-slate-300 dark:border-slate-700 bg-white/60 dark:bg-slate-900/60 rounded">
+                                        <div>Ghi chú #3...</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Cột 3 -->
+                            <div class="md:col-span-5 border border-violet-400 bg-violet-50/50 dark:bg-violet-950/30 rounded-lg p-3 flex flex-col">
+                                <div class="font-bold text-violet-700 dark:text-violet-300 mb-2">[3. TRÌNH SOẠN THẢO & AI]</div>
+                                <div class="p-1 bg-violet-200/60 dark:bg-violet-900/50 rounded mb-2 text-[10px] text-center font-bold">
+                                    ✨ Thanh AI: Tóm tắt | Tạo Todo | Mở rộng | Gợi ý Tag
+                                </div>
+                                <div class="flex-1 border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 rounded p-2 space-y-2">
+                                    <div class="font-bold border-b pb-1">Tiêu đề Ghi chú (H1)</div>
+                                    <div class="text-[11px] text-slate-500">Nội dung chi tiết văn bản...</div>
+                                    <div class="pt-2 border-t text-[11px]">
+                                        <div>☑ Công việc 1 (Đã xong)</div>
+                                        <div>☐ Công việc 2 (Đang làm)</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 4B: GIAO DIỆN CÁC CHỨC NĂNG CHÍNH -->
+                <div id="content-y4b" class="y4-content hidden space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 space-y-2">
+                            <h4 class="font-bold text-sm text-indigo-600 dark:text-indigo-400 flex items-center gap-2">
+                                <i data-lucide="folder-kanban" class="w-4 h-4"></i> 1. Phân loại & Theo dõi tiến độ 5+ ngày
+                            </h4>
+                            <p class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                                Cho phép gán mỗi ghi chú vào 5 thư mục chuẩn (Học tập, Công việc, Kế hoạch, Ý tưởng, Cá nhân), gắn nhãn màu sắc (Tags) và chọn ngày thực hiện. Biểu đồ cột tại Sidebar trực quan hóa tần suất ghi chép liên tục qua từng ngày.
+                            </p>
+                        </div>
+                        <div class="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 space-y-2">
+                            <h4 class="font-bold text-sm text-emerald-600 dark:text-emerald-400 flex items-center gap-2">
+                                <i data-lucide="check-square" class="w-4 h-4"></i> 2. Quản lý Checklist tích hợp
+                            </h4>
+                            <p class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                                Ngay bên dưới nội dung văn bản là module Checklist tương tác. Người dùng có thể thêm đầu việc, đánh dấu hoàn thành và theo dõi tỷ lệ phần trăm tiến độ theo thời gian thực.
+                            </p>
+                        </div>
+                        <div class="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 space-y-2">
+                            <h4 class="font-bold text-sm text-violet-600 dark:text-violet-400 flex items-center gap-2">
+                                <i data-lucide="sparkles" class="w-4 h-4"></i> 3. Trợ lý AI trong trình soạn thảo (Y6)
+                            </h4>
+                            <p class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                                Tích hợp mô hình ngôn ngữ lớn Gemini API giúp: Tóm tắt nội dung dài, tự động bóc tách danh sách việc cần làm (Action Items), mở rộng ý tưởng và đề xuất thẻ phân loại tự động.
+                            </p>
+                        </div>
+                        <div class="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 space-y-2">
+                            <h4 class="font-bold text-sm text-amber-600 dark:text-amber-400 flex items-center gap-2">
+                                <i data-lucide="message-square-code" class="w-4 h-4"></i> 4. Hỏi đáp thông minh (RAG trên ghi chú)
+                            </h4>
+                            <p class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                                Cửa sổ Chat AI đọc toàn bộ ngữ cảnh của các ghi chú hiện có để trả lời câu hỏi tổng hợp của sinh viên (VD: "Tổng hợp lịch ôn thi tuần này", "Tôi còn việc gì chưa xong?").
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 4C: CÁCH VẬN HÀNH CÁC CHỨC NĂNG CHÍNH (USER FLOW) -->
+                <div id="content-y4c" class="y4-content hidden space-y-4">
+                    <p class="text-xs text-slate-600 dark:text-slate-300">
+                        <strong>Luồng vận hành dữ liệu & Tương tác người dùng (Data & User Flow):</strong>
+                    </p>
+                    <div class="p-5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-4">
+                        <!-- Bước 1 -> 2 -> 3 -> 4 -->
+                        <div class="flex flex-col md:flex-row items-center justify-between gap-3 text-xs">
+                            <div class="flex-1 p-3 rounded-xl bg-white dark:bg-slate-900 border border-indigo-300 dark:border-indigo-800 shadow-xs text-center">
+                                <div class="font-bold text-indigo-600 dark:text-indigo-400 mb-1">Bước 1: Khởi tạo & Nhập liệu</div>
+                                <p class="text-[11px] text-slate-500">Nạp 12 ghi chú mẫu (6 ngày) từ LocalStorage hoặc người dùng nhấn "+ Tạo ghi chú".</p>
+                            </div>
+                            <i data-lucide="arrow-right" class="w-5 h-5 text-slate-400 rotate-90 md:rotate-0 shrink-0"></i>
+                            <div class="flex-1 p-3 rounded-xl bg-white dark:bg-slate-900 border border-emerald-300 dark:border-emerald-800 shadow-xs text-center">
+                                <div class="font-bold text-emerald-600 dark:text-emerald-400 mb-1">Bước 2: Tổ chức & Lưu trữ</div>
+                                <p class="text-[11px] text-slate-500">Gắn Danh mục, Tags, Ngày & Checklist. Tự động lưu real-time vào LocalStorage.</p>
+                            </div>
+                            <i data-lucide="arrow-right" class="w-5 h-5 text-slate-400 rotate-90 md:rotate-0 shrink-0"></i>
+                            <div class="flex-1 p-3 rounded-xl bg-white dark:bg-slate-900 border border-violet-300 dark:border-violet-800 shadow-xs text-center">
+                                <div class="font-bold text-violet-600 dark:text-violet-400 mb-1">Bước 3: Xử lý AI (Gemini API)</div>
+                                <p class="text-[11px] text-slate-500">Gửi Prompt + Nội dung ghi chú tới Gemini Flash để tóm tắt, trích xuất Todo hoặc Hỏi đáp.</p>
+                            </div>
+                            <i data-lucide="arrow-right" class="w-5 h-5 text-slate-400 rotate-90 md:rotate-0 shrink-0"></i>
+                            <div class="flex-1 p-3 rounded-xl bg-white dark:bg-slate-900 border border-amber-300 dark:border-amber-800 shadow-xs text-center">
+                                <div class="font-bold text-amber-600 dark:text-amber-400 mb-1">Bước 4: Tra cứu & Xuất báo cáo</div>
+                                <p class="text-[11px] text-slate-500">Lọc đa chiều theo từ khóa/ngày/thư mục và xuất file JSON, Markdown hoặc In ấn.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- MODAL 2: CHAT HỎI ĐÁP VỚI AI TRÊN TOÀN BỘ KHO GHI CHÚ (YÊU CẦU 6)     -->
+    <!-- ===================================================================== -->
+    <div id="ai-chat-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-2xl w-full h-[80vh] flex flex-col shadow-2xl overflow-hidden">
+            <!-- Header -->
+            <div class="px-5 py-3.5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-gradient-to-r from-indigo-600 to-violet-600 text-white">
+                <div class="flex items-center gap-2.5">
+                    <div class="p-1.5 rounded-lg bg-white/20">
+                        <i data-lucide="bot" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-sm">Trợ Lý AI Phân Tích Kho Ghi Chú</h3>
+                        <p class="text-[11px] text-indigo-100">Hỏi bất cứ điều gì về 12+ ghi chú cá nhân của bạn</p>
+                    </div>
+                </div>
+                <button onclick="closeModal('ai-chat-modal')" class="p-1.5 rounded-lg hover:bg-white/20 text-white transition">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <!-- Lịch sử tin nhắn -->
+            <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50 dark:bg-slate-950">
+                <div class="flex gap-2.5">
+                    <div class="w-7 h-7 rounded-full bg-indigo-600 text-white flex items-center justify-center shrink-0 mt-0.5">
+                        <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+                    </div>
+                    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl rounded-tl-none p-3.5 text-xs text-slate-700 dark:text-slate-200 leading-relaxed shadow-2xs max-w-[85%]">
+                        Xin chào! Tôi đã đọc toàn bộ kho ghi chú của bạn. Bạn có thể hỏi tôi về lịch ôn thi, các việc cần làm chưa hoàn thành, hoặc yêu cầu tổng hợp kiến thức theo từng chủ đề.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Gợi ý câu hỏi nhanh -->
+            <div class="px-4 py-2 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 flex gap-1.5 overflow-x-auto">
+                <button onclick="askQuickQuestion('Tổng hợp các deadline và công việc chưa hoàn thành của tôi?')" class="shrink-0 text-[11px] px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-indigo-100 dark:hover:bg-indigo-950 text-slate-600 dark:text-slate-300 transition">
+                    📋 Việc chưa hoàn thành?
+                </button>
+                <button onclick="askQuickQuestion('Tóm tắt toàn bộ nội dung các ghi chú thuộc danh mục Học tập.')" class="shrink-0 text-[11px] px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-indigo-100 dark:hover:bg-indigo-950 text-slate-600 dark:text-slate-300 transition">
+                    📚 Tóm tắt ghi chú Học tập
+                </button>
+                <button onclick="askQuickQuestion('Đánh giá tiến độ rèn luyện và học tập của tôi trong 6 ngày qua.')" class="shrink-0 text-[11px] px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-indigo-100 dark:hover:bg-indigo-950 text-slate-600 dark:text-slate-300 transition">
+                    📈 Đánh giá tiến độ 6 ngày
+                </button>
+            </div>
+
+            <!-- Ô nhập câu hỏi -->
+            <div class="p-3 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex gap-2">
+                <input type="text" id="chat-input" onkeydown="if(event.key==='Enter') sendChatMessage()" placeholder="Nhập câu hỏi của bạn (VD: Tuần này tôi có lịch họp nhóm khi nào?)..." class="flex-1 text-xs px-3.5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 outline-none focus:ring-2 focus:ring-indigo-500/30">
+                <button onclick="sendChatMessage()" id="chat-send-btn" class="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium flex items-center gap-1.5 transition">
+                    <span>Gửi</span>
+                    <i data-lucide="send" class="w-3.5 h-3.5"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- HỘP THÔNG BÁO TOAST (THAY THẾ ALERT) -->
+    <div id="toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- ===================================================================== -->
+    <!-- JAVASCRIPT LOGIC & TÍCH HỢP GEMINI API                                -->
+    <!-- ===================================================================== -->
+    <script>
+        // --- 1. CẤU HÌNH HỆ THỐNG & DỮ LIỆU MẪU (12 GHI CHÚ TRẢI DÀI 6 NGÀY) ---
+        const STORAGE_KEY = 'smartnote_ai_data_v1';
+        const CATEGORIES = [
+            { name: 'Học tập', icon: 'book-open', color: 'text-indigo-500', badge: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300' },
+            { name: 'Công việc', icon: 'briefcase', color: 'text-emerald-500', badge: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' },
+            { name: 'Kế hoạch', icon: 'calendar', color: 'text-amber-500', badge: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300' },
+            { name: 'Ý tưởng', icon: 'lightbulb', color: 'text-violet-500', badge: 'bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-300' },
+            { name: 'Cá nhân', icon: 'heart', color: 'text-rose-500', badge: 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300' }
+        ];
+
+        // Hàm lấy chuỗi ngày YYYY-MM-DD lùi về trước n ngày so với hôm nay
+        function getDateOffset(daysAgo) {
+            const d = new Date();
+            d.setDate(d.getDate() - daysAgo);
+            return d.toISOString().split('T')[0];
+        }
+
+        // Khởi tạo 12 ghi chú tiếng Việt thực tế, có ý nghĩa trải dài liên tục 6 ngày (từ 5 ngày trước đến hôm nay)
+        function generateSampleNotes() {
+            return [
+                {
+                    id: 'note-1',
+                    title: 'Kế hoạch ôn thi môn Công nghệ Thông tin 4.0',
+                    category: 'Học tập',
+                    tags: ['CNTT4.0', 'ÔnThi', 'QuanTrọng'],
+                    date: getDateOffset(0), // Hôm nay
+                    pinned: true,
+                    archived: false,
+                    content: 'Tổng hợp các trọng tâm kiến thức cho kỳ thi cuối kỳ môn CNTT 4.0:\n1. Điện toán đám mây (Cloud Computing): Phân biệt IaaS, PaaS, SaaS và ứng dụng thực tế.\n2. Trí tuệ nhân tạo tạo sinh (Generative AI): Nguyên lý hoạt động của LLM và kỹ thuật Prompt Engineering.\n3. Internet vạn vật (IoT) & Dữ liệu lớn (Big Data) trong chuyển đổi số doanh nghiệp.\n4. An toàn thông tin cơ bản và bảo mật dữ liệu cá nhân trên môi trường số.',
+                    todos: [
+                        { id: 't1', text: 'Hệ thống hóa sơ đồ tư duy chương 1 - 3', done: true },
+                        { id: 't2', text: 'Làm đề thi thử trắc nghiệm trên hệ thống LMS', done: false },
+                        { id: 't3', text: 'Hoàn thiện báo cáo Assignment nộp giảng viên', done: false }
+                    ]
+                },
+                {
+                    id: 'note-2',
+                    title: 'Ghi chép bài giảng: Kỹ thuật Prompt Engineering hiệu quả',
+                    category: 'Học tập',
+                    tags: ['AI', 'Prompt', 'GoogleAIStudio'],
+                    date: getDateOffset(0), // Hôm nay
+                    pinned: true,
+                    archived: false,
+                    content: 'Các nguyên tắc vàng khi viết Prompt cho mô hình Gemini:\n- Vai trò (Persona): Xác định rõ AI đóng vai chuyên gia nào (VD: Chuyên gia phân tích dữ liệu, Giảng viên hướng dẫn).\n- Ngữ cảnh (Context): Cung cấp đầy đủ thông tin nền tảng và mục tiêu đầu ra.\n- Nhiệm vụ cụ thể (Task): Dùng động từ mạnh, chia nhỏ các bước xử lý (Chain-of-Thought).\n- Định dạng đầu ra (Format): Yêu cầu trả về dạng bảng Markdown, JSON hoặc danh sách gạch đầu dòng.',
+                    todos: [
+                        { id: 't4', text: 'Thực hành tạo 5 mẫu Prompt trên Google AI Studio', done: true },
+                        { id: 't5', text: 'Áp dụng API Gemini vào ứng dụng quản lý ghi chú', done: true }
+                    ]
+                },
+                {
+                    id: 'note-3',
+                    title: 'Biên bản họp nhóm Assignment tuần này',
+                    category: 'Công việc',
+                    tags: ['HọpNhóm', 'Assignment', 'Deadline'],
+                    date: getDateOffset(1), // 1 ngày trước
+                    pinned: false,
+                    archived: false,
+                    content: 'Thời gian họp: 20h00 qua Google Meet.\nThành viên tham gia: Đủ 4/4 thành viên.\nNội dung thống nhất:\n- Bạn Minh phụ trách thiết kế bản vẽ phác thảo Wireframe trên Figma/DrawIO (Yêu cầu 4).\n- Bạn Lan chuẩn bị nội dung 12 ghi chú mẫu có ý nghĩa trong 6 ngày (Yêu cầu 5).\n- Bạn Hùng lập trình giao diện web và tích hợp Gemini API (Yêu cầu 6).\n- Chiều thứ 6 cả nhóm chạy thử nghiệm và quay video demo thuyết trình.',
+                    todos: [
+                        { id: 't6', text: 'Gửi link bản vẽ Wireframe vào nhóm Zalo trước 17h', done: true },
+                        { id: 't7', text: 'Kiểm tra chéo các chức năng lọc và tìm kiếm', done: false }
+                    ]
+                },
+                {
+                    id: 'note-4',
+                    title: 'Ý tưởng Đồ án cuối kỳ: Trợ lý học tập cá nhân hóa',
+                    category: 'Ý tưởng',
+                    tags: ['ĐồÁn', 'Startup', 'EdTech'],
+                    date: getDateOffset(1), // 1 ngày trước
+                    pinned: false,
+                    archived: false,
+                    content: 'Vấn đề: Sinh viên thường ghi chép rời rạc trên nhiều nền tảng (giấy, Word, Zalo) dẫn đến khó ôn tập khi đến kỳ thi.\nGiải pháp: Xây dựng nền tảng quản lý ghi chú tập trung tích hợp AI có khả năng:\n- Tự động tạo câu hỏi trắc nghiệm (Flashcards) từ nội dung bài giảng đã ghi chép.\n- Nhắc nhở ôn tập ngắt quãng (Spaced Repetition) trước kỳ thi 2 tuần.\n- Cho phép hỏi đáp trực tiếp trên kho tài liệu cá nhân.',
+                    todos: [
+                        { id: 't8', text: 'Khảo sát nhu cầu của 30 sinh viên trong khoa', done: false },
+                        { id: 't9', text: 'Thiết kế kiến trúc cơ sở dữ liệu ban đầu', done: false }
+                    ]
+                },
+                {
+                    id: 'note-5',
+                    title: 'Kế hoạch chi tiêu & Quản lý tài chính sinh viên tháng này',
+                    category: 'Kế hoạch',
+                    tags: ['TàiChính', 'TiếtKiệm', 'CáNhân'],
+                    date: getDateOffset(2), // 2 ngày trước
+                    pinned: false,
+                    archived: false,
+                    content: 'Tổng ngân sách tháng: 4.500.000 VNĐ.\nPhân bổ theo quy tắc 50/30/20:\n- Chi phí thiết yếu (50% - 2.250.000đ): Tiền trọ, điện nước, ăn uống cơ bản.\n- Phát triển bản thân & Học tập (30% - 1.350.000đ): Mua sách chuyên ngành, khóa học online, in ấn tài liệu.\n- Tiết kiệm & Dự phòng (20% - 900.000đ): Gửi tiết kiệm tích lũy mua laptop mới.',
+                    todos: [
+                        { id: 't10', text: 'Thanh toán tiền phòng trọ và internet đầu tháng', done: true },
+                        { id: 't11', text: 'Ghi chép chi tiêu hàng ngày tránh vượt ngân sách', done: true }
+                    ]
+                },
+                {
+                    id: 'note-6',
+                    title: 'Theo dõi thói quen đọc sách & Rèn luyện 5 ngày liên tục',
+                    category: 'Cá nhân',
+                    tags: ['ThóiQuen', 'ĐọcSách', 'PhátTriểnBảnThân'],
+                    date: getDateOffset(2), // 2 ngày trước
+                    pinned: false,
+                    archived: false,
+                    content: 'Mục tiêu: Đọc tối thiểu 30 trang sách mỗi ngày trước khi đi ngủ (từ 22h00 - 22h45) và tắt điện thoại.\nCuốn sách đang đọc: "Atomic Habits - Thay đổi tí hon, Hiệu quả bất ngờ" (James Clear).\nBài học tâm đắc: Tập trung vào việc xây dựng hệ thống thói quen tốt hơn là chỉ đặt mục tiêu suông. Mỗi ngày tốt hơn 1% sẽ tạo ra sự thay đổi khổng lồ sau 1 năm.',
+                    todos: [
+                        { id: 't12', text: 'Ngày 1 & 2: Hoàn thành chương 1-4 (65 trang)', done: true },
+                        { id: 't13', text: 'Ngày 3 & 4: Hoàn thành chương 5-8 (70 trang)', done: true },
+                        { id: 't14', text: 'Ngày 5: Viết bài tóm tắt 5 bài học áp dụng vào việc học', done: true }
+                    ]
+                },
+                {
+                    id: 'note-7',
+                    title: 'Lịch trình thực hành phòng Lab tuần 1',
+                    category: 'Kế hoạch',
+                    tags: ['ThựcHành', 'LịchTrình', 'LậpTrìnhWeb'],
+                    date: getDateOffset(3), // 3 ngày trước
+                    pinned: false,
+                    archived: false,
+                    content: 'Lịch thực hành chuyên sâu tại phòng Lab B302:\n- Thứ 2 (Ca 1): Cài đặt môi trường phát triển, làm quen Git/GitHub quản lý mã nguồn nhóm.\n- Thứ 4 (Ca 2): Xây dựng giao diện Responsive với Tailwind CSS.\n- Thứ 6 (Ca 1): Kết nối RESTful API và xử lý bất đồng bộ trong JavaScript.',
+                    todos: [
+                        { id: 't15', text: 'Tạo repository GitHub và phân quyền cho các thành viên', done: true },
+                        { id: 't16', text: 'Nộp bài tập thực hành Lab 1 đúng hạn', done: true }
+                    ]
+                },
+                {
+                    id: 'note-8',
+                    title: 'Danh sách sách & Tài liệu chuyên ngành cần đọc',
+                    category: 'Học tập',
+                    tags: ['SáchHay', 'TàiLiệu', 'CNTT'],
+                    date: getDateOffset(3), // 3 ngày trước
+                    pinned: false,
+                    archived: false,
+                    content: 'Tổng hợp các đầu sách hay được giảng viên giới thiệu:\n1. Clean Code (Robert C. Martin) - Nghệ thuật viết mã nguồn sạch và dễ bảo trì.\n2. Designing Data-Intensive Applications - Kiến trúc hệ thống dữ liệu quy mô lớn.\n3. Don’t Make Me Think (Steve Krug) - Nguyên lý thiết kế trải nghiệm người dùng (UI/UX) trực quan.\n4. Tài liệu hướng dẫn Google AI Studio & Gemini API Documentation.',
+                    todos: [
+                        { id: 't17', text: 'Tìm bản PDF hoặc mượn cuốn Clean Code ở thư viện trường', done: true },
+                        { id: 't18', text: 'Đọc chương 1-3 cuốn Don’t Make Me Think để áp dụng làm Wireframe', done: true }
+                    ]
+                },
+                {
+                    id: 'note-9',
+                    title: 'Công thức nấu ăn lành mạnh & Nhanh gọn cho sinh viên',
+                    category: 'Cá nhân',
+                    tags: ['SứcKhỏe', 'NấuĂn', 'EatClean'],
+                    date: getDateOffset(4), // 4 ngày trước
+                    pinned: false,
+                    archived: false,
+                    content: 'Thực đơn bữa trưa dinh dưỡng chuẩn bị chỉ trong 20 phút:\n- Nguyên liệu: 150g ức gà phi lê, 1 củ khoai lang, bông cải xanh, dầu ô liu, tỏi băm và tiêu đen.\n- Cách làm: Ướp ức gà với chút muối, tiêu, tỏi trong 10 phút rồi áp chảo lửa vừa mỗi mặt 4 phút. Khoai lang và bông cải luộc hoặc hấp chín tới để giữ nguyên vitamin.',
+                    todos: [
+                        { id: 't19', text: 'Đi siêu thị mua thực phẩm cho 3 ngày tới', done: true },
+                        { id: 't20', text: 'Uống đủ 2 lít nước mỗi ngày khi ngồi học máy tính', done: true }
+                    ]
+                },
+                {
+                    id: 'note-10',
+                    title: 'Checklist chuẩn bị hồ sơ thực tập doanh nghiệp',
+                    category: 'Công việc',
+                    tags: ['ThựcTập', 'CV', 'TuyểnDụng'],
+                    date: getDateOffset(4), // 4 ngày trước
+                    pinned: false,
+                    archived: false,
+                    content: 'Các đầu mục cần hoàn thiện để ứng tuyển vị trí Thực tập sinh Frontend / AI Application:\n- Cập nhật CV 1 trang chuẩn ATS, làm nổi bật các dự án thực tế (như ứng dụng SmartNote AI).\n- Hoàn thiện hồ sơ LinkedIn và ghim 3 dự án tiêu biểu nhất lên trang chủ GitHub.\n- Ôn tập kiến thức nền tảng về HTML/CSS, JavaScript ES6+ và tư duy giải quyết vấn đề.',
+                    todos: [
+                        { id: 't21', text: 'Nhờ giảng viên hướng dẫn góp ý bản thảo CV', done: true },
+                        { id: 't22', text: 'Gửi email ứng tuyển tới 5 công ty công nghệ mục tiêu', done: false }
+                    ]
+                },
+                {
+                    id: 'note-11',
+                    title: 'Nhật ký học tập & Khởi động dự án (Ngày 1)',
+                    category: 'Học tập',
+                    tags: ['NhậtKý', 'KhởiĐộng', 'Assignment'],
+                    date: getDateOffset(5), // 5 ngày trước
+                    pinned: false,
+                    archived: false,
+                    content: 'Ngày đầu tiên bắt tay vào thực hiện Assignment môn CNTT 4.0:\n- Đã đọc kỹ đề bài và phân tích 6 yêu cầu cốt lõi từ Y1 đến Y6.\n- Lựa chọn công cụ vẽ phác thảo DrawIO/Figma để phác họa bố cục 3 cột hiện đại.\n- Trải nghiệm thử nghiệm Google AI Studio để kiểm tra khả năng tóm tắt văn bản tiếng Việt của mô hình Gemini.',
+                    todos: [
+                        { id: 't23', text: 'Phân tích yêu cầu chức năng và phi chức năng', done: true },
+                        { id: 't24', text: 'Lập bảng phân công công việc chi tiết', done: true }
+                    ]
+                },
+                {
+                    id: 'note-12',
+                    title: 'Ghi chú thiết kế UI/UX & Bảng màu chuẩn cho Web App',
+                    category: 'Ý tưởng',
+                    tags: ['UIUX', 'DesignSystem', 'Tailwind'],
+                    date: getDateOffset(5), // 5 ngày trước
+                    pinned: false,
+                    archived: false,
+                    content: 'Nguyên tắc thẩm mỹ áp dụng cho ứng dụng Quản lý ghi chú:\n- Sử dụng font chữ không chân hiện đại (Inter) giúp đọc văn bản dài không mỏi mắt.\n- Tông màu chủ đạo Indigo (#4F46E5) kết hợp nền Slate trung tính tạo cảm giác chuyên nghiệp, tập trung.\n- Hỗ trợ đầy đủ Dark Mode để bảo vệ thị lực khi sinh viên học tập vào ban đêm.',
+                    todos: [
+                        { id: 't25', text: 'Kiểm tra độ tương phản màu sắc giữa nền sáng và tối', done: true }
+                    ]
+                }
+            ];
+        }
+
+        // --- 2. TRẠNG THÁI ỨNG DỤNG (STATE) ---
+        let state = {
+            notes: [],
+            activeNoteId: null,
+            filter: 'all', // 'all', 'pinned', 'archived', hoặc tên category
+            darkMode: false
+        };
+
+        // --- 3. KHỞI TẠO & LƯU TRỮ DỮ LIỆU ---
+        function initApp() {
+            // Tải theme từ localStorage
+            const savedTheme = localStorage.getItem('smartnote_theme');
+            if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+                state.darkMode = true;
+            }
+
+            // Tải dữ liệu ghi chú
+            const savedData = localStorage.getItem(STORAGE_KEY);
+            if (savedData) {
+                try {
+                    state.notes = JSON.parse(savedData);
+                } catch (e) {
+                    state.notes = generateSampleNotes();
+                }
+            } else {
+                state.notes = generateSampleNotes();
+                saveNotes();
+            }
+
+            if (state.notes.length > 0) {
+                state.activeNoteId = state.notes[0].id;
+            }
+
+            populateDateFilter();
+            renderAll();
+            lucide.createIcons();
+        }
+
+        function saveNotes() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(state.notes));
+            const statusEl = document.getElementById('save-status');
+            if (statusEl) {
+                statusEl.textContent = 'Đang lưu...';
+                setTimeout(() => {
+                    statusEl.textContent = 'Đã lưu lúc ' + new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+                }, 400);
+            }
+        }
+
+        function resetToSampleData() {
+            state.notes = generateSampleNotes();
+            state.filter = 'all';
+            state.activeNoteId = state.notes[0].id;
+            saveNotes();
+            populateDateFilter();
+            renderAll();
+            showToast('Đã khôi phục 12 ghi chú mẫu chuẩn (trải dài 6 ngày)!', 'success');
+        }
+
+        // --- 4. CÁC HÀM RENDER GIAO DIỆN ---
+        function renderAll() {
+            renderSidebar();
+            renderNotesList();
+            renderEditor();
+            lucide.createIcons();
+        }
+
+        function populateDateFilter() {
+            const dateFilter = document.getElementById('date-filter');
+            const uniqueDates = [...new Set(state.notes.map(n => n.date))].sort().reverse();
+            dateFilter.innerHTML = `<option value="all">Tất cả các ngày (${uniqueDates.length} ngày)</option>`;
+            uniqueDates.forEach(dateStr => {
+                const formatted = formatDateVN(dateStr);
+                dateFilter.innerHTML += `<option value="${dateStr}">${formatted}</option>`;
+            });
+        }
+
+        function renderSidebar() {
+            // Cập nhật số lượng
+            const activeNotes = state.notes.filter(n => !n.archived);
+            document.getElementById('count-all').textContent = activeNotes.length;
+            document.getElementById('count-pinned').textContent = activeNotes.filter(n => n.pinned).length;
+            document.getElementById('count-archived').textContent = state.notes.filter(n => n.archived).length;
+
+            // Highlight mục đang chọn
+            document.querySelectorAll('.nav-item').forEach(btn => {
+                const isSelected = btn.dataset.filter === state.filter;
+                if (isSelected) {
+                    btn.className = 'nav-item w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-sm font-medium bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 transition';
+                } else {
+                    btn.className = 'nav-item w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition';
+                }
+            });
+
+            // Render danh mục
+            const catContainer = document.getElementById('category-list');
+            catContainer.innerHTML = CATEGORIES.map(cat => {
+                const count = activeNotes.filter(n => n.category === cat.name).length;
+                const isSelected = state.filter === cat.name;
+                const activeClass = isSelected 
+                    ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300' 
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60';
+                return `
+                    <button onclick="setFilter('${cat.name}')" class="w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-sm font-medium ${activeClass} transition">
+                        <span class="flex items-center gap-2.5">
+                            <i data-lucide="${cat.icon}" class="w-4 h-4 ${cat.color}"></i>
+                            <span>${cat.name}</span>
+                        </span>
+                        <span class="text-xs text-slate-400">${count}</span>
+                    </button>
+                `;
+            }).join('');
+
+            // Render biểu đồ mini 6 ngày gần nhất (Đáp ứng Y5b)
+            const uniqueDates = [...new Set(state.notes.map(n => n.date))].sort();
+            document.getElementById('active-days-count').textContent = `${uniqueDates.length} ngày`;
+            const badge = document.getElementById('streak-badge');
+            if (uniqueDates.length >= 5) {
+                badge.textContent = 'Đạt chuẩn ≥5 ngày';
+                badge.className = 'text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300';
+            } else {
+                badge.textContent = `${uniqueDates.length}/5 ngày`;
+                badge.className = 'text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700';
+            }
+
+            const chartContainer = document.getElementById('mini-activity-chart');
+            const last6Days = [];
+            for (let i = 5; i >= 0; i--) {
+                last6Days.push(getDateOffset(i));
+            }
+            const maxNotes = Math.max(...last6Days.map(d => state.notes.filter(n => n.date === d).length), 1);
+
+            chartContainer.innerHTML = last6Days.map(d => {
+                const count = state.notes.filter(n => n.date === d).length;
+                const heightPct = count > 0 ? Math.max((count / maxNotes) * 100, 25) : 10;
+                const barColor = count > 0 ? 'bg-indigo-500 dark:bg-indigo-400' : 'bg-slate-200 dark:bg-slate-700';
+                const dayLabel = d.slice(8, 10) + '/' + d.slice(5, 7);
+                return `
+                    <div class="flex-1 flex flex-col items-center gap-1 group cursor-pointer" onclick="document.getElementById('date-filter').value='${d}'; renderNotesList();" title="Ngày ${dayLabel}: ${count} ghi chú">
+                        <div class="w-full bg-slate-200/50 dark:bg-slate-700/50 rounded-t-sm h-7 flex items-end overflow-hidden">
+                            <div style="height: ${heightPct}%" class="w-full ${barColor} rounded-t-sm transition-all duration-300 group-hover:bg-indigo-600"></div>
+                        </div>
+                        <span class="text-[9px] text-slate-400">${dayLabel}</span>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderNotesList() {
+            const container = document.getElementById('notes-container');
+            const query = document.getElementById('search-input').value.toLowerCase().trim();
+            const dateFilter = document.getElementById('date-filter').value;
+            const sortBy = document.getElementById('sort-select').value;
+
+            let filtered = state.notes.filter(note => {
+                // Lọc theo tab điều hướng
+                if (state.filter === 'archived') {
+                    if (!note.archived) return false;
+                } else {
+                    if (note.archived) return false;
+                    if (state.filter === 'pinned' && !note.pinned) return false;
+                    if (state.filter !== 'all' && state.filter !== 'pinned' && note.category !== state.filter) return false;
+                }
+
+                // Lọc theo ngày
+                if (dateFilter !== 'all' && note.date !== dateFilter) return false;
+
+                // Lọc theo từ khóa tìm kiếm
+                if (query) {
+                    const inTitle = note.title.toLowerCase().includes(query);
+                    const inContent = note.content.toLowerCase().includes(query);
+                    const inTags = note.tags.some(t => t.toLowerCase().includes(query));
+                    return inTitle || inContent || inTags;
+                }
+                return true;
+            });
+
+            // Sắp xếp (luôn ưu tiên ghim lên đầu nếu ở chế độ mặc định)
+            filtered.sort((a, b) => {
+                if (a.pinned !== b.pinned) return b.pinned ? 1 : -1;
+                if (sortBy === 'newest') return b.date.localeCompare(a.date);
+                if (sortBy === 'oldest') return a.date.localeCompare(b.date);
+                if (sortBy === 'title') return a.title.localeCompare(b.title);
+                return 0;
+            });
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-12 px-4">
+                        <i data-lucide="search-x" class="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto mb-2"></i>
+                        <p class="text-xs font-medium text-slate-500">Không tìm thấy ghi chú phù hợp</p>
+                        <button onclick="document.getElementById('search-input').value=''; document.getElementById('date-filter').value='all'; renderNotesList();" class="mt-2 text-xs text-indigo-600 hover:underline">Xóa bộ lọc</button>
+                    </div>
+                `;
+                lucide.createIcons();
+                return;
+            }
+
+            container.innerHTML = filtered.map(note => {
+                const isSelected = note.id === state.activeNoteId;
+                const catObj = CATEGORIES.find(c => c.name === note.category) || CATEGORIES[0];
+                const doneTodos = note.todos.filter(t => t.done).length;
+                const totalTodos = note.todos.length;
+
+                return `
+                    <div onclick="selectNote('${note.id}')" class="p-3.5 rounded-xl cursor-pointer transition border ${isSelected ? 'bg-white dark:bg-slate-800 border-indigo-500 shadow-md shadow-indigo-500/5' : 'bg-white/80 dark:bg-slate-900/80 border-slate-200/80 dark:border-slate-800 hover:border-indigo-300 dark:hover:border-slate-700'}">
+                        <div class="flex items-start justify-between gap-2 mb-1.5">
+                            <span class="text-[10px] font-semibold px-2 py-0.5 rounded-md ${catObj.badge}">${note.category}</span>
+                            <div class="flex items-center gap-1.5 text-[11px] text-slate-400">
+                                ${note.pinned ? '<i data-lucide="pin" class="w-3 h-3 text-amber-500 fill-amber-500"></i>' : ''}
+                                <span>${formatDateVN(note.date)}</span>
+                            </div>
+                        </div>
+                        <h4 class="font-semibold text-sm text-slate-800 dark:text-slate-100 line-clamp-1 mb-1">${note.title || 'Ghi chú chưa có tiêu đề'}</h4>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed mb-2.5">${note.content || 'Chưa có nội dung...'}</p>
+                        
+                        <div class="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800/80">
+                            <div class="flex items-center gap-1 overflow-hidden">
+                                ${note.tags.slice(0, 2).map(tag => `<span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">#${tag}</span>`).join('')}
+                                ${note.tags.length > 2 ? `<span class="text-[10px] text-slate-400">+${note.tags.length - 2}</span>` : ''}
+                            </div>
+                            ${totalTodos > 0 ? `
+                                <span class="text-[10px] font-medium flex items-center gap-1 ${doneTodos === totalTodos ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'}">
+                                    <i data-lucide="check-square" class="w-3 h-3"></i> ${doneTodos}/${totalTodos}
+                                </span>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            lucide.createIcons();
+        }
+
+        function renderEditor() {
+            const note = state.notes.find(n => n.id === state.activeNoteId);
+            const editorPane = document.getElementById('editor-pane');
+            const emptyState = document.getElementById('empty-editor-state');
+
+            if (!note) {
+                editorPane.classList.add('hidden');
+                emptyState.classList.remove('hidden');
+                emptyState.classList.add('flex');
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+            emptyState.classList.remove('flex');
+            if (window.innerWidth >= 768) {
+                editorPane.classList.remove('hidden');
+            }
+
+            // Điền dữ liệu vào form
+            document.getElementById('note-title-input').value = note.title;
+            document.getElementById('note-body-input').value = note.content;
+            document.getElementById('note-category-select').value = note.category;
+            document.getElementById('note-date-input').value = note.date;
+
+            // Trạng thái nút Pin & Archive
+            const btnPin = document.getElementById('btn-pin');
+            btnPin.className = note.pinned 
+                ? 'p-2 rounded-lg bg-amber-50 dark:bg-amber-950/60 text-amber-600 transition' 
+                : 'p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition';
+
+            const btnArchive = document.getElementById('btn-archive');
+            btnArchive.className = note.archived 
+                ? 'p-2 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 transition' 
+                : 'p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition';
+
+            // Render Tags
+            const tagsContainer = document.getElementById('note-tags-container');
+            tagsContainer.innerHTML = note.tags.map((tag, idx) => `
+                <span class="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-800/60">
+                    #${tag}
+                    <button onclick="removeTag(${idx})" class="hover:text-rose-500 ml-0.5"><i data-lucide="x" class="w-3 h-3"></i></button>
+                </span>
+            `).join('');
+
+            // Render Checklist
+            renderChecklist(note);
+            updateWordCount(note.content);
+            lucide.createIcons();
+        }
+
+        function renderChecklist(note) {
+            const container = document.getElementById('checklist-items');
+            const doneCount = note.todos.filter(t => t.done).length;
+            document.getElementById('checklist-progress').textContent = `${doneCount}/${note.todos.length} hoàn thành`;
+
+            if (note.todos.length === 0) {
+                container.innerHTML = `<p class="text-xs text-slate-400 italic">Chưa có công việc nào. Thêm thủ công hoặc dùng AI trích xuất từ nội dung.</p>`;
+                return;
+            }
+
+            container.innerHTML = note.todos.map((todo, index) => `
+                <div class="flex items-center justify-between gap-2 p-2 rounded-lg bg-slate-50 dark:bg-slate-900/80 border border-slate-200/60 dark:border-slate-800 group">
+                    <label class="flex items-center gap-2.5 cursor-pointer flex-1">
+                        <input type="checkbox" ${todo.done ? 'checked' : ''} onchange="toggleTodoItem(${index})" class="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer">
+                        <span class="text-xs ${todo.done ? 'line-through text-slate-400' : 'text-slate-700 dark:text-slate-200'}">${todo.text}</span>
+                    </label>
+                    <button onclick="deleteTodoItem(${index})" class="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-rose-500 transition p-1">
+                        <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                    </button>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        // --- 5. THAO TÁC CRUD TRÊN GHI CHÚ ---
+        function setFilter(filterName) {
+            state.filter = filterName;
+            renderSidebar();
+            renderNotesList();
+            if (window.innerWidth < 1024) toggleSidebar(false);
+        }
+
+        function selectNote(id) {
+            state.activeNoteId = id;
+            document.getElementById('ai-result-box').classList.add('hidden');
+            renderNotesList();
+            renderEditor();
+            // Trên màn hình nhỏ, ẩn danh sách và mở trình soạn thảo
+            if (window.innerWidth < 768) {
+                document.getElementById('note-list-pane').classList.add('hidden');
+                document.getElementById('editor-pane').classList.remove('hidden');
+                document.getElementById('editor-pane').classList.add('flex');
+            }
+        }
+
+        function closeMobileEditor() {
+            document.getElementById('editor-pane').classList.add('hidden');
+            document.getElementById('editor-pane').classList.remove('flex');
+            document.getElementById('note-list-pane').classList.remove('hidden');
+        }
+
+        function createNewNote() {
+            const newNote = {
+                id: 'note-' + Date.now(),
+                title: '',
+                category: (state.filter !== 'all' && state.filter !== 'pinned' && state.filter !== 'archived') ? state.filter : 'Học tập',
+                tags: ['Mới'],
+                date: getDateOffset(0),
+                pinned: false,
+                archived: false,
+                content: '',
+                todos: []
+            };
+            state.notes.unshift(newNote);
+            state.activeNoteId = newNote.id;
+            if (state.filter === 'archived') state.filter = 'all';
+            saveNotes();
+            populateDateFilter();
+            renderAll();
+            selectNote(newNote.id);
+            document.getElementById('note-title-input').focus();
+            showToast('Đã tạo ghi chú mới', 'info');
+        }
+
+        function updateCurrentNoteField(field, value) {
+            const note = state.notes.find(n => n.id === state.activeNoteId);
+            if (!note) return;
+            note[field] = value;
+            saveNotes();
+            if (field === 'content') updateWordCount(value);
+            if (field === 'date') {
+                populateDateFilter();
+                renderSidebar();
+            }
+            renderNotesList();
+        }
+
+        function toggleNoteFlag(flag) {
+            const note = state.notes.find(n => n.id === state.activeNoteId);
+            if (!note) return;
+            note[flag] = !note[flag];
+            saveNotes();
+            renderAll();
+            const msg = flag === 'pinned' 
+                ? (note.pinned ? 'Đã ghim ghi chú lên đầu' : 'Đã bỏ ghim ghi chú')
+                : (note.archived ? 'Đã chuyển vào mục Lưu trữ' : 'Đã khôi phục từ Lưu trữ');
+            showToast(msg, 'info');
+        }
+
+        function deleteCurrentNote() {
+            const idx = state.notes.findIndex(n => n.id === state.activeNoteId);
+            if (idx === -1) return;
+            state.notes.splice(idx, 1);
+            state.activeNoteId = state.notes.length > 0 ? state.notes[0].id : null;
+            saveNotes();
+            populateDateFilter();
+            renderAll();
+            if (window.innerWidth < 768) closeMobileEditor();
+            showToast('Đã xóa ghi chú', 'info');
+        }
+
+        // Quản lý Tags
+        function handleTagKeydown(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const val = e.target.value.trim().replace(/^#/, '');
+                if (!val) return;
+                const note = state.notes.find(n => n.id === state.activeNoteId);
+                if (note && !note.tags.includes(val)) {
+                    note.tags.push(val);
+                    saveNotes();
+                    renderEditor();
+                    renderNotesList();
+                }
+                e.target.value = '';
+            }
+        }
+
+        function removeTag(index) {
+            const note = state.notes.find(n => n.id === state.activeNoteId);
+            if (!note) return;
+            note.tags.splice(index, 1);
+            saveNotes();
+            renderEditor();
+            renderNotesList();
+        }
+
+        // Quản lý Checklist
+        function addTodoItem() {
+            const input = document.getElementById('new-todo-input');
+            const text = input.value.trim();
+            if (!text) return;
+            const note = state.notes.find(n => n.id === state.activeNoteId);
+            if (!note) return;
+            note.todos.push({ id: 'td-' + Date.now(), text, done: false });
+            input.value = '';
+            saveNotes();
+            renderChecklist(note);
+            renderNotesList();
+        }
+
+        function toggleTodoItem(index) {
+            const note = state.notes.find(n => n.id === state.activeNoteId);
+            if (!note) return;
+            note.todos[index].done = !note.todos[index].done;
+            saveNotes();
+            renderChecklist(note);
+            renderNotesList();
+        }
+
+        function deleteTodoItem(index) {
+            const note = state.notes.find(n => n.id === state.activeNoteId);
+            if (!note) return;
+            note.todos.splice(index, 1);
+            saveNotes();
+            renderChecklist(note);
+            renderNotesList();
+        }
+
+        // --- 6. TÍCH HỢP TRÍ TUỆ NHÂN TẠO GEMINI API (YÊU CẦU 6) ---
+        const apiKey = ""; // Canvas tự động cung cấp API Key khi thực thi
+        const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+
+        // Hàm gọi API có cơ chế Exponential Backoff chống nghẽn mạng
+        async function callGeminiAPI(prompt, systemInstruction = "Bạn là trợ lý quản lý ghi chú cá nhân thông minh, trả lời bằng tiếng Việt súc tích, rõ ràng.") {
+            const payload = {
+                contents: [{ parts: [{ text: prompt }] }],
+                systemInstruction: { parts: [{ text: systemInstruction }] }
+            };
+
+            const delays = [1000, 2000, 4000];
+            for (let attempt = 0; attempt <= delays.length; attempt++) {
+                try {
+                    const response = await fetch(GEMINI_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                    const data = await response.json();
+                    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+                    if (!text) throw new Error("Phản hồi rỗng từ AI");
+                    return text;
+                } catch (err) {
+                    if (attempt === delays.length) throw err;
+                    await new Promise(res => setTimeout(res, delays[attempt]));
+                }
+            }
+        }
+
+        // Thực thi các tính năng AI ngay trong trình soạn thảo
+        async function runAIAction(actionType) {
+            const note = state.notes.find(n => n.id === state.activeNoteId);
+            if (!note) return;
+            if (!note.title.trim() && !note.content.trim()) {
+                showToast('Vui lòng nhập tiêu đề hoặc nội dung ghi chú trước khi dùng AI!', 'warning');
+                return;
+            }
+
+            const resultBox = document.getElementById('ai-result-box');
+            const resultTitle = document.getElementById('ai-result-title');
+            const resultContent = document.getElementById('ai-result-content');
+            const resultActions = document.getElementById('ai-result-actions');
+
+            resultBox.classList.remove('hidden');
+            resultContent.innerHTML = `<span class="ai-loading inline-flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-medium">✨ Gemini AI đang phân tích nội dung ghi chú...</span>`;
+            resultActions.innerHTML = '';
+
+            const noteText = `Tiêu đề: ${note.title}\nDanh mục: ${note.category}\nNội dung:\n${note.content}`;
+
+            try {
+                if (actionType === 'summarize') {
+                    resultTitle.innerHTML = `<i data-lucide="align-left" class="w-4 h-4"></i> Tóm tắt ý chính (Gemini AI)`;
+                    const res = await callGeminiAPI(`Hãy tóm tắt ghi chú sau thành 3-4 gạch đầu dòng ngắn gọn, súc tích nhất:\n\n${noteText}`);
+                    resultContent.textContent = res;
+                    resultActions.innerHTML = `
+                        <button onclick="appendToNoteContent(\`\n\n--- TÓM TẮT AI ---\n${res.replace(/`/g, "'")}\`)" class="px-3 py-1.5 rounded-lg bg-indigo-600 text-white text-xs font-medium hover:bg-indigo-700 transition">
+                            + Chèn vào cuối ghi chú
+                        </button>
+                    `;
+                } 
+                else if (actionType === 'extract_todos') {
+                    resultTitle.innerHTML = `<i data-lucide="check-square" class="w-4 h-4"></i> Trích xuất Checklist công việc`;
+                    const res = await callGeminiAPI(
+                        `Từ nội dung ghi chú dưới đây, hãy trích xuất danh sách các việc cần làm cụ thể (Action Items). Chỉ trả về mỗi công việc trên một dòng, bắt đầu bằng dấu gạch ngang "- ", không thêm lời dẫn:\n\n${noteText}`
+                    );
+                    resultContent.textContent = res;
+                    const lines = res.split('\n').map(l => l.replace(/^[-*•\d.]+\s*/, '').trim()).filter(l => l.length > 2);
+                    resultActions.innerHTML = `
+                        <button onclick='applyExtractedTodos(${JSON.stringify(lines)})' class="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-medium hover:bg-emerald-700 transition">
+                            + Thêm ${lines.length} mục vào Checklist
+                        </button>
+                    `;
+                } 
+                else if (actionType === 'expand') {
+                    resultTitle.innerHTML = `<i data-lucide="wand-2" class="w-4 h-4"></i> Mở rộng ý tưởng & Chuẩn hóa văn phong`;
+                    const res = await callGeminiAPI(
+                        `Hãy viết lại và mở rộng nội dung ghi chú sau cho mạch lạc, chuyên nghiệp, chi tiết và dễ học/dễ áp dụng hơn (giữ nguyên ngôn ngữ tiếng Việt):\n\n${noteText}`
+                    );
+                    resultContent.textContent = res;
+                    resultActions.innerHTML = `
+                        <button onclick="replaceNoteContent(\`${res.replace(/`/g, "'")}\`)" class="px-3 py-1.5 rounded-lg bg-violet-600 text-white text-xs font-medium hover:bg-violet-700 transition">
+                            Thay thế nội dung hiện tại
+                        </button>
+                        <button onclick="appendToNoteContent(\`\n\n${res.replace(/`/g, "'")}\`)" class="px-3 py-1.5 rounded-lg bg-slate-200 dark:bg-slate-800 text-xs font-medium hover:bg-slate-300 transition">
+                            Chèn thêm bên dưới
+                        </button>
+                    `;
+                } 
+                else if (actionType === 'auto_tags') {
+                    resultTitle.innerHTML = `<i data-lucide="tags" class="w-4 h-4"></i> Gợi ý Phân loại thông minh`;
+                    const res = await callGeminiAPI(
+                        `Dựa trên ghi chú sau, hãy đề xuất 1 danh mục phù hợp nhất trong số [Học tập, Công việc, Kế hoạch, Ý tưởng, Cá nhân] và 3 thẻ (tags) ngắn gọn không dấu cách. Trả về đúng định dạng JSON thuần túy: {"category": "...", "tags": ["tag1", "tag2", "tag3"]}\n\n${noteText}`
+                    );
+                    const cleanJson = res.replace(/```json|```/g, '').trim();
+                    const parsed = JSON.parse(cleanJson);
+                    resultContent.textContent = `Danh mục đề xuất: ${parsed.category}\nThẻ (Tags) gợi ý: ${parsed.tags.map(t => '#' + t).join(', ')}`;
+                    resultActions.innerHTML = `
+                        <button onclick='applySuggestedMeta(${JSON.stringify(parsed)})' class="px-3 py-1.5 rounded-lg bg-amber-600 text-white text-xs font-medium hover:bg-amber-700 transition">
+                            Áp dụng Danh mục & Thẻ
+                        </button>
+                    `;
+                }
+            } catch (error) {
+                resultContent.innerHTML = `<span class="text-rose-500">Không thể kết nối tới Gemini API lúc này. Vui lòng thử lại sau giây lát.</span>`;
+            }
+            lucide.createIcons();
+        }
+
+        function appendToNoteContent(text) {
+            const note = state.notes.find(n => n.id === state.activeNoteId);
+            if (!note) return;
+            note.content += text;
+            saveNotes();
+            renderEditor();
+            renderNotesList();
+            showToast('Đã chèn nội dung AI vào ghi chú!', 'success');
+        }
+
+        function replaceNoteContent(text) {
+            const note = state.notes.find(n => n.id === state.activeNoteId);
+            if (!note) return;
+            note.content = text;
+            saveNotes();
+            renderEditor();
+            renderNotesList();
+            showToast('Đã cập nhật nội dung ghi chú!', 'success');
+        }
+
+        function applyExtractedTodos(items) {
+            const note = state.notes.find(n => n.id === state.activeNoteId);
+            if (!note) return;
+            items.forEach(text => {
+                note.todos.push({ id: 'td-' + Date.now() + Math.random(), text, done: false });
+            });
+            saveNotes();
+            renderChecklist(note);
+            renderNotesList();
+            showToast(`Đã thêm ${items.length} công việc vào Checklist!`, 'success');
+        }
+
+        function applySuggestedMeta(meta) {
+            const note = state.notes.find(n => n.id === state.activeNoteId);
+            if (!note) return;
+            if (CATEGORIES.some(c => c.name === meta.category)) {
+                note.category = meta.category;
+            }
+            meta.tags.forEach(t => {
+                const cleanTag = t.replace(/^#/, '');
+                if (!note.tags.includes(cleanTag)) note.tags.push(cleanTag);
+            });
+            saveNotes();
+            renderAll();
+            showToast('Đã cập nhật Danh mục & Thẻ tự động!', 'success');
+        }
+
+        // Chat AI trên toàn bộ kho ghi chú
+        function askQuickQuestion(q) {
+            document.getElementById('chat-input').value = q;
+            sendChatMessage();
+        }
+
+        async function sendChatMessage() {
+            const input = document.getElementById('chat-input');
+            const question = input.value.trim();
+            if (!question) return;
+
+            const chatBox = document.getElementById('chat-messages');
+            input.value = '';
+
+            // Hiển thị tin nhắn người dùng
+            chatBox.innerHTML += `
+                <div class="flex justify-end">
+                    <div class="bg-indigo-600 text-white rounded-2xl rounded-tr-none p-3 text-xs leading-relaxed max-w-[80%] shadow-xs">
+                        ${escapeHtml(question)}
+                    </div>
+                </div>
+            `;
+
+            // Tạo bong bóng chờ của AI
+            const loadingId = 'ai-msg-' + Date.now();
+            chatBox.innerHTML += `
+                <div id="${loadingId}" class="flex gap-2.5">
+                    <div class="w-7 h-7 rounded-full bg-indigo-600 text-white flex items-center justify-center shrink-0 mt-0.5">
+                        <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+                    </div>
+                    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl rounded-tl-none p-3.5 text-xs text-slate-500 ai-loading">
+                        Đang tra cứu dữ liệu từ ${state.notes.length} ghi chú...
+                    </div>
+                </div>
+            `;
+            chatBox.scrollTop = chatBox.scrollHeight;
+            lucide.createIcons();
+
+            // Đóng gói ngữ cảnh toàn bộ ghi chú
+            const contextData = state.notes.map((n, i) => {
+                const todosStr = n.todos.map(t => `[${t.done ? 'Xong' : 'Chưa xong'}] ${t.text}`).join('; ');
+                return `Ghi chú #${i + 1} (${n.date} | Danh mục: ${n.category}): "${n.title}"\nNội dung: ${n.content}\nChecklist: ${todosStr || 'Không có'}`;
+            }).join('\n---\n');
+
+            const fullPrompt = `Dưới đây là toàn bộ dữ liệu ghi chú cá nhân của người dùng:\n\n${contextData}\n\nCâu hỏi của người dùng: "${question}"\nHãy trả lời chính xác dựa trên dữ liệu ghi chú trên, trình bày rõ ràng, thân thiện bằng tiếng Việt.`;
+
+            try {
+                const reply = await callGeminiAPI(fullPrompt);
+                const msgEl = document.getElementById(loadingId);
+                msgEl.innerHTML = `
+                    <div class="w-7 h-7 rounded-full bg-indigo-600 text-white flex items-center justify-center shrink-0 mt-0.5">
+                        <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+                    </div>
+                    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl rounded-tl-none p-3.5 text-xs text-slate-700 dark:text-slate-200 leading-relaxed whitespace-pre-line shadow-2xs max-w-[85%]">
+                        ${escapeHtml(reply)}
+                    </div>
+                `;
+            } catch (e) {
+                const msgEl = document.getElementById(loadingId);
+                msgEl.innerHTML = `<div class="text-xs text-rose-500 p-2">Lỗi kết nối AI. Vui lòng thử lại!</div>`;
+            }
+            chatBox.scrollTop = chatBox.scrollHeight;
+            lucide.createIcons();
+        }
+
+        // --- 7. TIỆN ÍCH GIAO DIỆN & XUẤT BÁO CÁO ---
+        function formatDateVN(dateStr) {
+            if (!dateStr) return '';
+            const today = getDateOffset(0);
+            const yesterday = getDateOffset(1);
+            if (dateStr === today) return 'Hôm nay';
+            if (dateStr === yesterday) return 'Hôm qua';
+            const [y, m, d] = dateStr.split('-');
+            return `${d}/${m}/${y}`;
+        }
+
+        function updateWordCount(text) {
+            const clean = text.trim();
+            const words = clean ? clean.split(/\s+/).length : 0;
+            document.getElementById('word-count').textContent = `${words} từ • ${text.length} ký tự`;
+        }
+
+        function exportData(format) {
+            let content = '';
+            let filename = '';
+            let mimeType = '';
+
+            if (format === 'json') {
+                content = JSON.stringify(state.notes, null, 2);
+                filename = `SmartNote_Backup_${getDateOffset(0)}.json`;
+                mimeType = 'application/json';
+            } else {
+                content = `# BÁO CÁO QUẢN LÝ GHI CHÚ CÁ NHÂN (SMARTNOTE AI)\nNgày xuất: ${formatDateVN(getDateOffset(0))} | Tổng số: ${state.notes.length} ghi chú\n\n`;
+                state.notes.forEach((n, idx) => {
+                    content += `## ${idx + 1}. ${n.title}\n- **Ngày:** ${n.date} | **Danh mục:** ${n.category} | **Tags:** ${n.tags.map(t => '#' + t).join(', ')}\n\n${n.content}\n\n`;
+                    if (n.todos.length > 0) {
+                        content += `**Checklist công việc:**\n` + n.todos.map(t => `- [${t.done ? 'x' : ' '}] ${t.text}`).join('\n') + `\n\n`;
+                    }
+                    content += `---\n\n`;
+                });
+                filename = `BaoCao_GhiChu_${getDateOffset(0)}.md`;
+                mimeType = 'text/markdown';
+            }
+
+            const blob = new Blob([content], { type: mimeType });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast(`Đã xuất file ${filename}`, 'success');
+        }
+
+        // Điều khiển Modal & Tabs Y4
+        function openModal(id) {
+            const modal = document.getElementById(id);
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            lucide.createIcons();
+        }
+
+        function closeModal(id) {
+            const modal = document.getElementById(id);
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function switchY4Tab(tabName) {
+            document.querySelectorAll('.y4-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById('content-' + tabName).classList.remove('hidden');
+
+            document.querySelectorAll('.y4-tab').forEach(btn => {
+                btn.className = 'y4-tab py-3 text-xs font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-700';
+            });
+            document.getElementById('tab-' + tabName).className = 'y4-tab py-3 text-xs font-bold border-b-2 border-indigo-600 text-indigo-600 dark:text-indigo-400';
+        }
+
+        // Điều khiển Sidebar Mobile & Theme
+        function toggleSidebar(forceState) {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            const isOpen = typeof forceState === 'boolean' ? forceState : sidebar.classList.contains('-translate-x-full');
+            if (isOpen) {
+                sidebar.classList.remove('-translate-x-full');
+                overlay.classList.remove('hidden');
+            } else {
+                sidebar.classList.add('-translate-x-full');
+                overlay.classList.add('hidden');
+            }
+        }
+
+        document.getElementById('mobile-menu-btn').addEventListener('click', () => toggleSidebar());
+
+        document.getElementById('theme-toggle').addEventListener('click', () => {
+            const isDark = document.documentElement.classList.toggle('dark');
+            localStorage.setItem('smartnote_theme', isDark ? 'dark' : 'light');
+        });
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            const colors = {
+                success: 'bg-emerald-600 text-white',
+                warning: 'bg-amber-600 text-white',
+                info: 'bg-slate-800 dark:bg-slate-700 text-white'
+            };
+            toast.className = `${colors[type] || colors.info} px-4 py-2.5 rounded-xl shadow-lg text-xs font-medium flex items-center gap-2 transition-all duration-300 transform translate-y-2 opacity-0`;
+            toast.innerHTML = `<span>${message}</span>`;
+            container.appendChild(toast);
+            requestAnimationFrame(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            });
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+        }
+
+        // Khởi chạy ứng dụng khi tải trang xong
+        window.onload = initApp;
+    </script>
+</body>
+</html>
